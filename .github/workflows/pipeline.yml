@@ -1,0 +1,42 @@
+name: ML Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout Repo
+      uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
+
+    - name: Install dependencies
+      run: |
+        pip install pandas scikit-learn dvc dvc-s3
+
+    - name: Configure AWS
+      run: |
+        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws configure set default.region ap-south-1
+
+    - name: Pull dataset from DVC
+      run: dvc pull
+
+    - name: Train model
+      run: python src/train.py
+
+    - name: Upload metrics
+      uses: actions/upload-artifact@v3
+      with:
+        name: metrics
+        path: metrics.json
